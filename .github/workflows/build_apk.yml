@@ -1,0 +1,58 @@
+name: Build Mokges APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Kodni yuklab olish
+        uses: actions/checkout@v4
+
+      - name: Java o'rnatish
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Flutter o'rnatish
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+          cache: true
+
+      - name: Paketlarni yuklab olish
+        run: flutter pub get
+
+      - name: APK build qilish
+        run: flutter build apk --release --no-tree-shake-icons
+
+      - name: APK ni artifacts ga yuklash
+        uses: actions/upload-artifact@v4
+        with:
+          name: mokges-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
+
+      - name: Release yaratish
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: "Mokges v1.0.${{ github.run_number }}"
+          body: |
+            ## Mokges APK tayyor! 📱
+            **app-release.apk** ni yuklab oling va telefoningizga o'rnating.
+          files: build/app/outputs/flutter-apk/app-release.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
